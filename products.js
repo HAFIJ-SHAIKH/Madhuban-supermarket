@@ -5,7 +5,7 @@ const products = [
     unit: "70 g", 
     price: 15, 
     mrp: 18, 
-    img: "https://images.unsplash.com/photo-1612929633738-8c10ad4f34f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80", 
+    img: "https://www.google.com/search?client=ms-android-vivo-rvo3&hs=RblV&sca_esv=0ca1614a8e79126c&sxsrf=APpeQnuZF2ioomzUn2xs5vhg-IFyEDWFUw:1786561254365&udm=2&fbs=ABfTbFXXq5_lq1-qc-RNbCT-iVCvZUY4OllCx8eHi2DBbGa2PoUPiBop7GRck9_ggqJeBKkeYkF3SJRR5lvoNgJqsHraZ5XpNNvqRSmKXnd4-wOYyod_LkywCkRlw_AysNVi_hisAHOxieJ-PAcVMpXdH1GlPrCLX-8TlDmQPr9-2ylfjJGvW_7FsRn2YqMHOhL2Y6EsVv21sjUXh99QrYOB4dyUSuxlc5iaG6Pk6UATWD5jkOhQGOI&q=maggie+images&sa=X&sqi=2&ved=2ahUKEwiQhL6n45uWAxXdmuEIHabVNT8QtKgLegQIERAB&biw=436&bih=881&dpr=2.47#sv=CAMSVxoyKhBlLUVINDRuNUR6d01wNTJNMg5FSDQ0bjVEendNcDUyTToOYkZiQ3JrdGxfUEVZYk0gBCoXCgFzEhBlLUVINDRuNUR6d01wNTJNGAEwAUoECAEQAhgHILn9nKADSggQAhgBIAIoAQ", 
     cat: "Snacks",
     desc: "Instant masala noodles. Ready in just 2 minutes. Perfect for a quick and tasty meal."
   },
