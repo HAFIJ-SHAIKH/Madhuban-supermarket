@@ -1,0 +1,551 @@
+const cart = {};
+let currentFilter = "All";
+let activeProduct = null;
+let activeVariant = null;
+
+/* ====== HTML TEMPLATES ====== */
+function productCardHTML(p) {
+  let priceHtml = '';
+  let unitHtml = p.unit || 'Choose Weight';
+
+  if (p.variants || p.customPricePerKg) {
+    let minPrice = Infinity;
+    if (p.variants) minPrice = Math.min(...p.variants.map(v => v.price));
+    else if (p.customPricePerKg) minPrice = Math.round(p.customPricePerKg * 0.1); // 100g min price
+    
+    priceHtml = `
+      <span class="product-card__price">₹${minPrice}</span>
+      <span class="product-card__price-original" style="font-size: 11px; color: var(--ink-mute); font-weight: 500; margin-top: 4px; text-decoration: none;">Starts from</span>
+    `;
+  } else {
+    priceHtml = `
+      <span class="product-card__price">₹${p.price}</span>
+      ${p.mrp ? `<span class="product-card__price-original">₹${p.mrp}</span>` : ''}
+    `;
+  }
+
+  return `
+    <div class="product-card" data-id="${p.id}">
+      <div class="product-card__media" onclick="openProductDetail('${p.id}')">
+        <img src="${p.img}" class="product-card__img" alt="${p.name}">
+        ${p.mrp || p.variants || p.customPricePerKg ? `<span class="product-card__badge">${p.variants || p.customPricePerKg ? 'OPTIONS' : Math.round((1 - p.price/p.mrp) * 100) + '% OFF'}</span>` : ''}
+      </div>
+      <div class="product-card__content">
+        <h3 class="product-card__title">${p.name}</h3>
+        <p class="product-card__unit">${unitHtml}</p>
+        <div class="product-card__bottom">
+          <div class="product-card__price-block">
+            ${priceHtml}
+          </div>
+          <div class="product-card__actions">
+            ${p.variants || p.customPricePerKg ? `
+              <button class="add-btn" onclick="openProductDetail('${p.id}')">VIEW</button>
+            ` : `
+              <button class="add-btn" data-id="${p.id}">ADD</button>
+              <div class="stepper">
+                <button class="dec-btn" data-id="${p.id}">−</button>
+                <span class="qty">1</span>
+                <button class="inc-btn" data-id="${p.id}">+</button>
+              </div>
+            `}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function attachProductEvents() {
+  document.querySelectorAll('.add-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      addToCart(btn.dataset.id);
+    });
+  });
+  document.querySelectorAll('.inc-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      changeCartQty(btn.dataset.id, 1);
+    });
+  });
+  document.querySelectorAll('.dec-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      changeCartQty(btn.dataset.id, -1);
+    });
+  });
+}
+
+/* ====== RENDER PRODUCTS ====== */
+const grid = document.getElementById('productsGrid');
+
+function renderProducts() {
+  const filtered = products.filter(p => currentFilter === "All" || p.cat === currentFilter);
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--ink-mute);">No products found</div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(productCardHTML).join('');
+  attachProductEvents();
+  syncAllProductUI();
+}
+
+/* ====== PRODUCT DETAIL LOGIC ====== */
+const detailSheet = document.getElementById('detailSheet');
+const detailOverlay = document.getElementById('detailOverlay');
+const customWeightSection = document.getElementById('customWeightSection');
+const customWeightWrap = document.getElementById('customWeightWrap');
+const customWeightToggle = document.getElementById('customWeightToggle');
+const customWeightInput = document.getElementById('customWeightInput');
+const customWeightInfo = document.getElementById('customWeightInfo');
+
+function openProductDetail(id) {
+  const p = products.find(prod => prod.id === id);
+  if (!p) return;
+  
+  activeProduct = p;
+  activeVariant = p.variants ? p.variants[0] : null;
+
+  document.getElementById('detailImg').src = p.img;
+  document.getElementById('detailCat').textContent = p.cat;
+  document.getElementById('detailTitle').textContent = p.name;
+  document.getElementById('detailDesc').textContent = p.desc;
+
+  const variantContainer = document.getElementById('variantContainer');
+  const variantOptions = document.getElementById('variantOptions');
+
+  // Reset custom weight UI state
+  customWeightWrap.classList.remove('active');
+  customWeightInfo.classList.remove('active');
+  customWeightInput.value = '';
+
+  if (p.variants || p.customPricePerKg) {
+    variantContainer.style.display = 'block';
+    
+    let variantsHTML = '';
+    if (p.variants) {
+      variantsHTML += p.variants.map((v, i) => `
+        <div class="variant-card ${i === 0 && !p.customPricePerKg ? 'active' : ''}" onclick="selectVariant(${i})">
+          <div class="variant-card__weight">${v.unit}</div>
+          <div class="variant-card__price">₹${v.price}</div>
+          ${v.mrp ? `<span class="variant-card__mrp">₹${v.mrp}</span>` : ''}
+        </div>
+      `).join('');
+    }
+    variantOptions.innerHTML = variantsHTML;
+
+    // Show custom weight option if enabled
+    if (p.customPricePerKg) {
+      customWeightSection.style.display = 'block';
+      // If custom is allowed but no pre-defined variants, default to custom
+      if (!p.variants) {
+        activeVariant = null; // Will be set when user types weight
+      }
+    } else {
+      customWeightSection.style.display = 'none';
+    }
+
+    updateDetailPrice();
+  } else {
+    variantContainer.style.display = 'none';
+    document.getElementById('detailPrice').textContent = `₹${p.price}`;
+    const mrpEl = document.getElementById('detailMrp');
+    if (p.mrp) {
+      mrpEl.textContent = `₹${p.mrp}`;
+      mrpEl.style.display = 'block';
+    } else {
+      mrpEl.style.display = 'none';
+    }
+  }
+
+  detailSheet.classList.add('open');
+  detailOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function selectVariant(index) {
+  document.querySelectorAll('.variant-card').forEach(card => card.classList.remove('active'));
+  document.querySelectorAll('.variant-card')[index].classList.add('active');
+  activeVariant = activeProduct.variants[index];
+  
+  // Reset custom weight UI
+  customWeightWrap.classList.remove('active');
+  customWeightInfo.classList.remove('active');
+  customWeightToggle.style.display = 'block';
+  
+  updateDetailPrice();
+}
+
+// Custom Weight Logic
+customWeightToggle.addEventListener('click', () => {
+  customWeightWrap.classList.add('active');
+  customWeightToggle.style.display = 'none';
+  customWeightInput.focus();
+});
+
+document.getElementById('calcCustomWeightBtn').addEventListener('click', () => {
+  let weight = parseInt(customWeightInput.value);
+  
+  if (!weight || weight < 100) {
+    alert("Minimum weight is 100g.");
+    return;
+  }
+  if (weight > 50000) {
+    alert("Maximum weight is 50kg (50000g).");
+    return;
+  }
+
+  // Calculate price
+  const pricePerKg = activeProduct.customPricePerKg;
+  const calculatedPrice = (pricePerKg / 1000) * weight;
+  const finalPrice = Math.round(calculatedPrice * 100) / 100; // Round to 2 decimals
+
+  // Update Active Variant
+  activeVariant = {
+    unit: `${weight} g (Custom)`,
+    price: finalPrice,
+    custom: true
+  };
+
+  // Deselect pre-defined variant cards
+  document.querySelectorAll('.variant-card').forEach(card => card.classList.remove('active'));
+
+  // Update UI
+  customWeightInfo.innerText = `Custom Weight: ${weight}g = ₹${finalPrice}`;
+  customWeightInfo.classList.add('active');
+  
+  updateDetailPrice();
+});
+
+// Allow hitting "Enter" on input to calculate
+customWeightInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    document.getElementById('calcCustomWeightBtn').click();
+  }
+});
+
+function updateDetailPrice() {
+  if (activeVariant) {
+    document.getElementById('detailPrice').textContent = `₹${activeVariant.price}`;
+    const mrpEl = document.getElementById('detailMrp');
+    if (activeVariant.mrp) {
+      mrpEl.textContent = `₹${activeVariant.mrp}`;
+      mrpEl.style.display = 'block';
+    } else {
+      mrpEl.style.display = 'none';
+    }
+  } else if (activeProduct && activeProduct.customPricePerKg) {
+    document.getElementById('detailPrice').textContent = `₹${activeProduct.customPricePerKg}/kg`;
+  }
+}
+
+document.getElementById('detailAddBtn').addEventListener('click', () => {
+  if (!activeProduct) return;
+  
+  // If it's a custom/variant product but no variant selected yet
+  if ((activeProduct.variants || activeProduct.customPricePerKg) && !activeVariant) {
+    alert("Please select a weight or enter a custom weight.");
+    return;
+  }
+
+  let cartId, cartItem;
+  if ((activeProduct.variants || activeProduct.customPricePerKg) && activeVariant) {
+    cartId = `${activeProduct.id}_${activeVariant.unit}`;
+    cartItem = {
+      id: cartId,
+      name: activeProduct.name,
+      unit: activeVariant.unit,
+      price: activeVariant.price,
+      img: activeProduct.img,
+      qty: 1
+    };
+  } else {
+    cartId = activeProduct.id;
+    cartItem = { ...activeProduct, qty: 1 };
+  }
+
+  cart[cartId] = cartItem;
+  syncAllProductUI();
+  updateCartUI();
+  closeDetailSheet();
+});
+
+function closeDetailSheet() {
+  detailSheet.classList.remove('open');
+  detailOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('closeDetailBtn').addEventListener('click', closeDetailSheet);
+detailOverlay.addEventListener('click', closeDetailSheet);
+
+/* ====== CART LOGIC ====== */
+function addToCart(id) {
+  const product = products.find(p => p.id === id);
+  if (!product || product.variants || product.customPricePerKg) return;
+  cart[id] = { ...product, qty: 1 };
+  syncProductCardUI(id);
+  updateCartUI();
+}
+
+function changeCartQty(id, delta) {
+  if (!cart[id]) return;
+  cart[id].qty += delta;
+  if (cart[id].qty <= 0) delete cart[id];
+  syncProductCardUI(id);
+  updateCartUI();
+}
+
+function syncProductCardUI(id) {
+  document.querySelectorAll(`.product-card[data-id="${id}"]`).forEach(card => {
+    const qtySpan = card.querySelector('.qty');
+    if (cart[id]) {
+      card.classList.add('in-cart');
+      if (qtySpan) qtySpan.textContent = cart[id].qty;
+    } else {
+      card.classList.remove('in-cart');
+    }
+  });
+}
+
+function syncAllProductUI() {
+  Object.keys(cart).forEach(id => syncProductCardUI(id));
+}
+
+function updateCartUI() {
+  const itemIds = Object.keys(cart);
+  const totalQty = itemIds.reduce((sum, id) => sum + cart[id].qty, 0);
+  const subtotal = itemIds.reduce((sum, id) => sum + (cart[id].price * cart[id].qty), 0);
+
+  const floatingCart = document.getElementById('floatingCart');
+  if (totalQty > 0) {
+    floatingCart.classList.add('visible');
+    document.getElementById('cartCount').textContent = `${totalQty} item${totalQty > 1 ? 's' : ''}`;
+    document.getElementById('cartTotal').textContent = `₹${subtotal}`;
+  } else {
+    floatingCart.classList.remove('visible');
+  }
+
+  const cartItemsContainer = document.getElementById('cartItemsContainer');
+  const cartFoot = document.getElementById('cartFoot');
+  const emptyCart = document.getElementById('emptyCart');
+
+  if (itemIds.length === 0) {
+    emptyCart.style.display = 'block';
+    cartFoot.style.display = 'none';
+    cartItemsContainer.innerHTML = '';
+  } else {
+    emptyCart.style.display = 'none';
+    cartFoot.style.display = 'block';
+    document.getElementById('subtotal').textContent = `₹${subtotal}`;
+    document.getElementById('cartTotalFinal').textContent = `₹${subtotal}`;
+    document.getElementById('checkoutTotal').textContent = `₹${subtotal}`;
+
+    cartItemsContainer.innerHTML = '';
+    itemIds.forEach(id => {
+      const item = cart[id];
+      const itemEl = document.createElement('div');
+      itemEl.className = 'cart-item';
+      itemEl.innerHTML = `
+        <img src="${item.img}" class="cart-item__img" alt="${item.name}">
+        <div class="cart-item__details">
+          <h4 class="cart-item__title">${item.name}</h4>
+          <p class="cart-item__unit">${item.unit}</p>
+          <div class="cart-item__bottom">
+            <span class="cart-item__price">₹${item.price * item.qty}</span>
+            <div class="cart-item__stepper">
+              <button data-cart-dec="${id}">−</button>
+              <span>${item.qty}</span>
+              <button data-cart-inc="${id}">+</button>
+            </div>
+          </div>
+        </div>
+      `;
+      cartItemsContainer.appendChild(itemEl);
+    });
+
+    cartItemsContainer.querySelectorAll('[data-cart-inc]').forEach(btn => {
+      btn.addEventListener('click', () => changeCartQty(btn.dataset.cartInc, 1));
+    });
+    cartItemsContainer.querySelectorAll('[data-cart-dec]').forEach(btn => {
+      btn.addEventListener('click', () => changeCartQty(btn.dataset.cartDec, -1));
+    });
+  }
+}
+
+/* ====== SEARCH LOGIC ====== */
+const searchOverlay = document.getElementById('searchOverlay');
+const searchInput = document.getElementById('searchInput');
+const searchResultsGrid = document.getElementById('searchResultsGrid');
+const searchEmpty = document.getElementById('searchEmpty');
+
+document.getElementById('openSearchBtn').addEventListener('click', () => {
+  searchOverlay.classList.add('open');
+  setTimeout(() => searchInput.focus(), 100);
+});
+
+document.getElementById('closeSearchBtn').addEventListener('click', () => {
+  searchOverlay.classList.remove('open');
+  searchInput.value = '';
+  renderSearchResults('');
+});
+
+function renderSearchResults(query) {
+  const filtered = products.filter(p => p.name.toLowerCase().includes(query.toLowerCase()));
+  if (filtered.length === 0) {
+    searchResultsGrid.innerHTML = '';
+    searchEmpty.style.display = 'block';
+  } else {
+    searchEmpty.style.display = 'none';
+    searchResultsGrid.innerHTML = filtered.map(productCardHTML).join('');
+    attachProductEvents();
+    syncAllProductUI();
+  }
+}
+
+searchInput.addEventListener('input', (e) => {
+  renderSearchResults(e.target.value);
+});
+
+/* ====== CART SHEET LOGIC ====== */
+const cartSheet = document.getElementById('cartSheet');
+const cartOverlay = document.getElementById('cartOverlay');
+const cartView = document.getElementById('cartView');
+const checkoutView = document.getElementById('checkoutView');
+
+function openCartSheet() {
+  cartSheet.classList.add('open');
+  cartOverlay.classList.add('open');
+  showCartView();
+  document.body.style.overflow = 'hidden';
+}
+
+function closeCartSheet() {
+  cartSheet.classList.remove('open');
+  cartOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function showCartView() {
+  checkoutView.classList.remove('active');
+  checkoutView.classList.add('hidden');
+  cartView.classList.remove('hidden');
+  cartView.classList.add('active');
+}
+
+function showCheckoutView() {
+  cartView.classList.remove('active');
+  cartView.classList.add('hidden');
+  checkoutView.classList.remove('hidden');
+  checkoutView.classList.add('active');
+  loadUserData();
+}
+
+document.getElementById('openCartBtn').addEventListener('click', openCartSheet);
+document.getElementById('closeCartBtn').addEventListener('click', closeCartSheet);
+document.getElementById('closeCartBtn2').addEventListener('click', closeCartSheet);
+document.getElementById('cartOverlay').addEventListener('click', closeCartSheet);
+
+document.getElementById('goToCheckoutBtn').addEventListener('click', () => {
+  if (Object.keys(cart).length === 0) return;
+  showCheckoutView();
+});
+
+document.getElementById('backToCartBtn').addEventListener('click', showCartView);
+
+/* ====== LOCAL STORAGE & WHATSAPP ORDER ====== */
+function loadUserData() {
+  const saved = JSON.parse(localStorage.getItem('madhuban_user') || '{}');
+  document.getElementById('inputName').value = saved.name || '';
+  document.getElementById('inputPhone').value = saved.phone || '';
+  document.getElementById('inputHouse').value = saved.house || '';
+  document.getElementById('inputArea').value = saved.area || '';
+  document.getElementById('inputLandmark').value = saved.landmark || '';
+  document.getElementById('inputPincode').value = saved.pincode || '';
+}
+
+document.getElementById('placeOrderBtn').addEventListener('click', () => {
+  const name = document.getElementById('inputName').value.trim();
+  const phone = document.getElementById('inputPhone').value.trim();
+  const house = document.getElementById('inputHouse').value.trim();
+  const area = document.getElementById('inputArea').value.trim();
+  const landmark = document.getElementById('inputLandmark').value.trim();
+  const pincode = document.getElementById('inputPincode').value.trim();
+  const notes = document.getElementById('inputNotes').value.trim();
+
+  if (!name || !phone || !house || !area || !pincode) {
+    alert('Please fill all required fields marked with *');
+    return;
+  }
+  if (phone.length !== 10) {
+    alert('Please enter a valid 10-digit phone number');
+    return;
+  }
+  if (pincode.length !== 6) {
+    alert('Please enter a valid 6-digit pincode');
+    return;
+  }
+
+  localStorage.setItem('madhuban_user', JSON.stringify({ name, phone, house, area, landmark, pincode }));
+
+  let msg = `🛒 *NEW ORDER - MADHUBAN SUPERMARKET* 🛒\n`;
+  msg += `━━━━━━━━━━━━━━━━\n`;
+  msg += `Hello! I would like to place the following order. Please confirm availability, final amount, and delivery time.\n\n`;
+  
+  msg += `📝 *ORDER ITEMS:*\n`;
+  let subtotal = 0;
+  Object.keys(cart).forEach((id, i) => {
+    const item = cart[id];
+    const itemTotal = item.price * item.qty;
+    subtotal += itemTotal;
+    msg += `${i+1}. ${item.name} (${item.unit})\n   Qty: ${item.qty} x ₹${item.price} = *₹${itemTotal}*\n`;
+  });
+  
+  msg += `\n💰 *ESTIMATED TOTAL: ₹${subtotal}*\n`;
+  msg += `(Delivery charges may apply based on location)\n`;
+  msg += `━━━━━━━━━━━━━━━━\n`;
+  
+  msg += `📍 *DELIVERY DETAILS:*\n`;
+  msg += `👤 Name: ${name}\n`;
+  msg += `📞 Phone: ${phone}\n`;
+  msg += `🏠 House/Flat: ${house}\n`;
+  msg += `📍 Street/Area: ${area}\n`;
+  if (landmark) msg += `🚩 Landmark: ${landmark}\n`;
+  msg += `📮 Pincode: ${pincode}\n`;
+  if (notes) msg += `📝 Notes: ${notes}\n`;
+  
+  msg += `━━━━━━━━━━━━━━━━\n`;
+  msg += `Looking forward to your confirmation. Thank you!\n`;
+
+  // IMPORTANT: Replace 919999999999 with the actual WhatsApp number
+  const waUrl = `https://wa.me/919999999999?text=${encodeURIComponent(msg)}`;
+  window.open(waUrl, '_blank');
+});
+
+/* ====== CATEGORIES FILTER ====== */
+document.querySelectorAll('.cat-pill').forEach(pill => {
+  pill.addEventListener('click', (e) => {
+    e.preventDefault();
+    const cat = pill.dataset.cat;
+    document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+    currentFilter = cat;
+    document.getElementById('productsTitle').textContent = cat === "All" ? "All Products" : cat;
+    renderProducts();
+    document.getElementById('productsTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+});
+
+/* ====== HEADER SCROLL EFFECT ====== */
+const header = document.getElementById('mainHeader');
+window.addEventListener('scroll', () => {
+  if (window.scrollY > 10) {
+    header.classList.add('scrolled');
+  } else {
+    header.classList.remove('scrolled');
+  }
+});
+
+/* ====== INIT ====== */
+renderProducts();
