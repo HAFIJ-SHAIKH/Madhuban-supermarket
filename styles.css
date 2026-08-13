@@ -42,9 +42,7 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
   transition: border-color 0.3s;
 }
 .header.scrolled { border-bottom-color: var(--line); }
-.header__top {
-  display: flex; justify-content: space-between; align-items: center; gap: 1rem;
-}
+.header__top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .logo {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 800; font-size: 1.2rem; letter-spacing: -0.03em;
@@ -267,28 +265,20 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
 
 /* ====== CUSTOM WEIGHT SYSTEM ====== */
 .custom-weight-section {
-  margin-top: 1.5rem;
-  padding: 1.25rem;
-  background: var(--surface);
-  border: 1px dashed var(--line);
-  border-radius: 16px;
+  margin-top: 1.5rem; padding: 1.25rem;
+  background: var(--surface); border: 1px dashed var(--line); border-radius: 16px;
 }
 .custom-weight-toggle {
   width: 100%; text-align: center; background: transparent;
-  color: var(--primary); font-weight: 700; font-size: 14px;
-  padding: 0.5rem; cursor: pointer;
+  color: var(--primary); font-weight: 700; font-size: 14px; padding: 0.5rem; cursor: pointer;
 }
-.custom-weight-input-wrap {
-  display: none; align-items: center; gap: 0.5rem; margin-top: 1rem;
-}
+.custom-weight-input-wrap { display: none; align-items: center; gap: 0.5rem; margin-top: 1rem; }
 .custom-weight-input-wrap.active { display: flex; }
 .custom-weight-input {
   flex: 1; background: var(--bg); border: 1px solid var(--line);
   border-radius: 10px; padding: 0.75rem; font-size: 15px; color: var(--ink);
 }
-.custom-weight-unit {
-  font-weight: 700; color: var(--ink-soft); font-size: 14px;
-}
+.custom-weight-unit { font-weight: 700; color: var(--ink-soft); font-size: 14px; }
 .custom-weight-btn {
   background: var(--ink); color: #fff; padding: 0.75rem 1rem;
   border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer;
@@ -409,6 +399,9 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
 .sheet__btn:active { transform: scale(0.98); }
 .sheet__btn.green { background: var(--primary); }
 .sheet__btn.whatsapp { background: #075E54; }
+.cart-note {
+  font-size: 12px; color: var(--ink-mute); text-align: center; margin-top: 1rem;
+}
 
 /* Checkout View */
 .view { display: none; flex-direction: column; height: 100%; }
@@ -442,4 +435,4 @@ h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
   .categories-scroll { padding: 0 2rem 0.5rem; }
   .floating-cart { left: 50%; transform: translateX(-50%) translateY(150px); width: 500px; }
   .floating-cart.visible { transform: translateX(-50%) translateY(0); }
-}
+  }
