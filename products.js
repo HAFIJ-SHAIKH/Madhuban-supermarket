@@ -5,7 +5,7 @@ const products = [
     unit: "70 g", 
     price: 15, 
     mrp: 18, 
-    img: "https://images.unsplash.com/photo-1612929633738-8c10ad4f34f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80", 
+    img: "https://5.imimg.com/data5/SELLER/Default/2023/11/363459181/WU/HF/DP/158100183/maggi-1.jpg", 
     cat: "Snacks",
     desc: "Instant masala noodles. Ready in just 2 minutes. Perfect for a quick and tasty meal."
   },
