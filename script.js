@@ -11,16 +11,16 @@ function productCardHTML(p) {
   if (p.variants || p.customPricePerKg) {
     let minPrice = Infinity;
     if (p.variants) minPrice = Math.min(...p.variants.map(v => v.price));
-    else if (p.customPricePerKg) minPrice = Math.round(p.customPricePerKg * 0.1); // 100g min price
+    else if (p.customPricePerKg) minPrice = Math.round(p.customPricePerKg * 0.1);
     
     priceHtml = `
-      <span class="product-card__price">₹${minPrice}</span>
+      <span class="product-card__price">Rs ${minPrice}</span>
       <span class="product-card__price-original" style="font-size: 11px; color: var(--ink-mute); font-weight: 500; margin-top: 4px; text-decoration: none;">Starts from</span>
     `;
   } else {
     priceHtml = `
-      <span class="product-card__price">₹${p.price}</span>
-      ${p.mrp ? `<span class="product-card__price-original">₹${p.mrp}</span>` : ''}
+      <span class="product-card__price">Rs ${p.price}</span>
+      ${p.mrp ? `<span class="product-card__price-original">Rs ${p.mrp}</span>` : ''}
     `;
   }
 
@@ -43,7 +43,7 @@ function productCardHTML(p) {
             ` : `
               <button class="add-btn" data-id="${p.id}">ADD</button>
               <div class="stepper">
-                <button class="dec-btn" data-id="${p.id}">−</button>
+                <button class="dec-btn" data-id="${p.id}">-</button>
                 <span class="qty">1</span>
                 <button class="inc-btn" data-id="${p.id}">+</button>
               </div>
@@ -114,7 +114,6 @@ function openProductDetail(id) {
   const variantContainer = document.getElementById('variantContainer');
   const variantOptions = document.getElementById('variantOptions');
 
-  // Reset custom weight UI state
   customWeightWrap.classList.remove('active');
   customWeightInfo.classList.remove('active');
   customWeightInput.value = '';
@@ -125,22 +124,18 @@ function openProductDetail(id) {
     let variantsHTML = '';
     if (p.variants) {
       variantsHTML += p.variants.map((v, i) => `
-        <div class="variant-card ${i === 0 && !p.customPricePerKg ? 'active' : ''}" onclick="selectVariant(${i})">
+        <div class="variant-card ${i === 0 ? 'active' : ''}" onclick="selectVariant(${i})">
           <div class="variant-card__weight">${v.unit}</div>
-          <div class="variant-card__price">₹${v.price}</div>
-          ${v.mrp ? `<span class="variant-card__mrp">₹${v.mrp}</span>` : ''}
+          <div class="variant-card__price">Rs ${v.price}</div>
+          ${v.mrp ? `<span class="variant-card__mrp">Rs ${v.mrp}</span>` : ''}
         </div>
       `).join('');
     }
     variantOptions.innerHTML = variantsHTML;
 
-    // Show custom weight option if enabled
     if (p.customPricePerKg) {
       customWeightSection.style.display = 'block';
-      // If custom is allowed but no pre-defined variants, default to custom
-      if (!p.variants) {
-        activeVariant = null; // Will be set when user types weight
-      }
+      if (!p.variants) activeVariant = null;
     } else {
       customWeightSection.style.display = 'none';
     }
@@ -148,10 +143,10 @@ function openProductDetail(id) {
     updateDetailPrice();
   } else {
     variantContainer.style.display = 'none';
-    document.getElementById('detailPrice').textContent = `₹${p.price}`;
+    document.getElementById('detailPrice').textContent = `Rs ${p.price}`;
     const mrpEl = document.getElementById('detailMrp');
     if (p.mrp) {
-      mrpEl.textContent = `₹${p.mrp}`;
+      mrpEl.textContent = `Rs ${p.mrp}`;
       mrpEl.style.display = 'block';
     } else {
       mrpEl.style.display = 'none';
@@ -168,7 +163,6 @@ function selectVariant(index) {
   document.querySelectorAll('.variant-card')[index].classList.add('active');
   activeVariant = activeProduct.variants[index];
   
-  // Reset custom weight UI
   customWeightWrap.classList.remove('active');
   customWeightInfo.classList.remove('active');
   customWeightToggle.style.display = 'block';
@@ -176,7 +170,6 @@ function selectVariant(index) {
   updateDetailPrice();
 }
 
-// Custom Weight Logic
 customWeightToggle.addEventListener('click', () => {
   customWeightWrap.classList.add('active');
   customWeightToggle.style.display = 'none';
@@ -195,29 +188,23 @@ document.getElementById('calcCustomWeightBtn').addEventListener('click', () => {
     return;
   }
 
-  // Calculate price
   const pricePerKg = activeProduct.customPricePerKg;
   const calculatedPrice = (pricePerKg / 1000) * weight;
-  const finalPrice = Math.round(calculatedPrice * 100) / 100; // Round to 2 decimals
+  const finalPrice = Math.round(calculatedPrice * 100) / 100;
 
-  // Update Active Variant
   activeVariant = {
     unit: `${weight} g (Custom)`,
     price: finalPrice,
     custom: true
   };
 
-  // Deselect pre-defined variant cards
   document.querySelectorAll('.variant-card').forEach(card => card.classList.remove('active'));
-
-  // Update UI
-  customWeightInfo.innerText = `Custom Weight: ${weight}g = ₹${finalPrice}`;
+  customWeightInfo.innerText = `Custom Weight: ${weight}g = Rs ${finalPrice}`;
   customWeightInfo.classList.add('active');
   
   updateDetailPrice();
 });
 
-// Allow hitting "Enter" on input to calculate
 customWeightInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
     e.preventDefault();
@@ -227,23 +214,22 @@ customWeightInput.addEventListener('keypress', (e) => {
 
 function updateDetailPrice() {
   if (activeVariant) {
-    document.getElementById('detailPrice').textContent = `₹${activeVariant.price}`;
+    document.getElementById('detailPrice').textContent = `Rs ${activeVariant.price}`;
     const mrpEl = document.getElementById('detailMrp');
     if (activeVariant.mrp) {
-      mrpEl.textContent = `₹${activeVariant.mrp}`;
+      mrpEl.textContent = `Rs ${activeVariant.mrp}`;
       mrpEl.style.display = 'block';
     } else {
       mrpEl.style.display = 'none';
     }
   } else if (activeProduct && activeProduct.customPricePerKg) {
-    document.getElementById('detailPrice').textContent = `₹${activeProduct.customPricePerKg}/kg`;
+    document.getElementById('detailPrice').textContent = `Rs ${activeProduct.customPricePerKg}/kg`;
   }
 }
 
 document.getElementById('detailAddBtn').addEventListener('click', () => {
   if (!activeProduct) return;
   
-  // If it's a custom/variant product but no variant selected yet
   if ((activeProduct.variants || activeProduct.customPricePerKg) && !activeVariant) {
     alert("Please select a weight or enter a custom weight.");
     return;
@@ -322,7 +308,7 @@ function updateCartUI() {
   if (totalQty > 0) {
     floatingCart.classList.add('visible');
     document.getElementById('cartCount').textContent = `${totalQty} item${totalQty > 1 ? 's' : ''}`;
-    document.getElementById('cartTotal').textContent = `₹${subtotal}`;
+    document.getElementById('cartTotal').textContent = `Rs ${subtotal}`;
   } else {
     floatingCart.classList.remove('visible');
   }
@@ -338,9 +324,23 @@ function updateCartUI() {
   } else {
     emptyCart.style.display = 'none';
     cartFoot.style.display = 'block';
-    document.getElementById('subtotal').textContent = `₹${subtotal}`;
-    document.getElementById('cartTotalFinal').textContent = `₹${subtotal}`;
-    document.getElementById('checkoutTotal').textContent = `₹${subtotal}`;
+    document.getElementById('subtotal').textContent = `Rs ${subtotal}`;
+    document.getElementById('cartTotalFinal').textContent = `Rs ${subtotal}`;
+    document.getElementById('checkoutTotal').textContent = `Rs ${subtotal}`;
+
+    // Delivery Fee Logic
+    const deliveryFeeEl = document.getElementById('deliveryFee');
+    if (subtotal >= 1999) {
+      deliveryFeeEl.textContent = "FREE";
+      deliveryFeeEl.style.color = "var(--primary)";
+      deliveryFeeEl.style.fontWeight = "700";
+      deliveryFeeEl.style.fontSize = "14px";
+    } else {
+      deliveryFeeEl.textContent = "Calculated on WhatsApp";
+      deliveryFeeEl.style.color = "var(--ink-mute)";
+      deliveryFeeEl.style.fontWeight = "600";
+      deliveryFeeEl.style.fontSize = "12px";
+    }
 
     cartItemsContainer.innerHTML = '';
     itemIds.forEach(id => {
@@ -353,9 +353,9 @@ function updateCartUI() {
           <h4 class="cart-item__title">${item.name}</h4>
           <p class="cart-item__unit">${item.unit}</p>
           <div class="cart-item__bottom">
-            <span class="cart-item__price">₹${item.price * item.qty}</span>
+            <span class="cart-item__price">Rs ${item.price * item.qty}</span>
             <div class="cart-item__stepper">
-              <button data-cart-dec="${id}">−</button>
+              <button data-cart-dec="${id}">-</button>
               <span>${item.qty}</span>
               <button data-cart-inc="${id}">+</button>
             </div>
@@ -489,34 +489,42 @@ document.getElementById('placeOrderBtn').addEventListener('click', () => {
 
   localStorage.setItem('madhuban_user', JSON.stringify({ name, phone, house, area, landmark, pincode }));
 
-  let msg = `🛒 *NEW ORDER - MADHUBAN SUPERMARKET* 🛒\n`;
-  msg += `━━━━━━━━━━━━━━━━\n`;
-  msg += `Hello! I would like to place the following order. Please confirm availability, final amount, and delivery time.\n\n`;
+  let msg = `*NEW ORDER - MADHUBAN SUPERMARKET*\n`;
+  msg += `================================\n`;
+  msg += `Hello! I would like to place the following order.\n\n`;
   
-  msg += `📝 *ORDER ITEMS:*\n`;
+  msg += `*ORDER ITEMS:*\n`;
   let subtotal = 0;
   Object.keys(cart).forEach((id, i) => {
     const item = cart[id];
     const itemTotal = item.price * item.qty;
     subtotal += itemTotal;
-    msg += `${i+1}. ${item.name} (${item.unit})\n   Qty: ${item.qty} x ₹${item.price} = *₹${itemTotal}*\n`;
+    msg += `${i+1}. ${item.name} (${item.unit})\n   Qty: ${item.qty} x Rs ${item.price} = *Rs ${itemTotal}*\n`;
   });
   
-  msg += `\n💰 *ESTIMATED TOTAL: ₹${subtotal}*\n`;
-  msg += `(Delivery charges may apply based on location)\n`;
-  msg += `━━━━━━━━━━━━━━━━\n`;
+  msg += `\n*ESTIMATED TOTAL: Rs ${subtotal}*\n`;
   
-  msg += `📍 *DELIVERY DETAILS:*\n`;
-  msg += `👤 Name: ${name}\n`;
-  msg += `📞 Phone: ${phone}\n`;
-  msg += `🏠 House/Flat: ${house}\n`;
-  msg += `📍 Street/Area: ${area}\n`;
-  if (landmark) msg += `🚩 Landmark: ${landmark}\n`;
-  msg += `📮 Pincode: ${pincode}\n`;
-  if (notes) msg += `📝 Notes: ${notes}\n`;
+  // Delivery Fee Logic for WhatsApp Message
+  if (subtotal >= 1999) {
+    msg += `*Delivery: FREE (Order above Rs 1999)*\n`;
+  } else {
+    msg += `*Delivery: Charges applicable (Free above Rs 1999)*\n`;
+  }
   
-  msg += `━━━━━━━━━━━━━━━━\n`;
-  msg += `Looking forward to your confirmation. Thank you!\n`;
+  msg += `================================\n`;
+  
+  msg += `*DELIVERY DETAILS:*\n`;
+  msg += `Name: ${name}\n`;
+  msg += `Phone: ${phone}\n`;
+  msg += `House/Flat: ${house}\n`;
+  msg += `Street/Area: ${area}\n`;
+  if (landmark) msg += `Landmark: ${landmark}\n`;
+  msg += `Pincode: ${pincode}\n`;
+  msg += `City: Latur\n`;
+  if (notes) msg += `Notes: ${notes}\n`;
+  
+  msg += `================================\n`;
+  msg += `Please confirm the availability, final amount, and delivery time. Thank you!\n`;
 
   // IMPORTANT: Replace 919999999999 with the actual WhatsApp number
   const waUrl = `https://wa.me/919999999999?text=${encodeURIComponent(msg)}`;
