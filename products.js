@@ -7,7 +7,8 @@ const products = [
     mrp: 18, 
     img: "https://5.imimg.com/data5/SELLER/Default/2023/11/363459181/WU/HF/DP/158100183/maggi-1.jpg", 
     cat: "Snacks",
-    desc: "Instant masala noodles. Ready in just 2 minutes. Perfect for a quick and tasty meal."
+    desc: "Instant masala noodles. Ready in just 2 minutes. Perfect for a quick and tasty meal.",
+    isOffer: true 
   },
   { 
     id: "p2", 
@@ -18,7 +19,8 @@ const products = [
     variants: [
       { unit: "1 Pack (Half Rate)", price: 140, mrp: 280 },
       { unit: "2 Packs (Buy 1 Get 1)", price: 280, mrp: 560 }
-    ]
+    ],
+    isOffer: true
   },
   { 
     id: "p3", 
@@ -55,6 +57,16 @@ const products = [
     variants: [
       { unit: "250 g", price: 300, mrp: 350 },
       { unit: "500 g", price: 550, mrp: 650 }
-    ]
+    ],
+    isOffer: true
+  },
+  { 
+    id: "p6", 
+    name: "Tata Salt", 
+    unit: "1 kg", 
+    price: 28, 
+    img: "https://images.unsplash.com/photo-1616462823505-56b4f0d1e3e8?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80", 
+    cat: "Pantry",
+    desc: "Described as the salt of the nation. Essential for every kitchen."
   }
 ];
