@@ -33,6 +33,12 @@
   <p class="hero__desc">Order from Madhuban Supermarket. Free delivery on orders above Rs 1999.</p>
 </section>
 
+<!-- OFFERS BANNER -->
+<section id="offersContainer" style="display: none;">
+  <h2 class="section-title">Today's Best Offers</h2>
+  <div class="offers-scroll" id="offersScroll"></div>
+</section>
+
 <!-- CATEGORIES -->
 <h2 class="section-title">Categories</h2>
 <div class="categories-scroll" id="categoriesScroll">
@@ -44,6 +50,7 @@
 <!-- PRODUCTS -->
 <h2 class="section-title" id="productsTitle">All Products</h2>
 <div class="products-grid" id="productsGrid"></div>
+<button class="show-more-btn" id="showMoreBtn" style="display: none;">Show More</button>
 
 <footer class="footer">
   Madhuban Supermarket © 2024<br>Quality you trust.
@@ -94,12 +101,21 @@
           + Enter Custom Weight (Min 100g, Max 50kg)
         </button>
         <div class="custom-weight-input-wrap" id="customWeightWrap">
-          <input type="number" class="custom-weight-input" id="customWeightInput" placeholder="e.g. 750" min="100" max="50000">
-          <span class="custom-weight-unit">grams</span>
+          <input type="number" class="custom-weight-input" id="customWeightInput" placeholder="e.g. 750" min="1">
+          <div class="custom-weight-unit-toggle">
+            <button id="unitGramsBtn" class="active">g</button>
+            <button id="unitKgBtn">kg</button>
+          </div>
           <button class="custom-weight-btn" id="calcCustomWeightBtn">Set</button>
         </div>
         <div class="custom-weight-info" id="customWeightInfo"></div>
       </div>
+    </div>
+
+    <!-- RELATED ITEMS -->
+    <div class="related-section" id="relatedSection" style="display: none;">
+      <label class="variant-label">You might also like</label>
+      <div class="related-scroll" id="relatedScroll"></div>
     </div>
   </div>
   <div class="detail-sheet__foot">
