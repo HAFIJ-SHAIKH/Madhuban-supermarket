@@ -1,34 +1,59 @@
-const cart = {};
+// Load Cart from Local Storage
+let cart = JSON.parse(localStorage.getItem('madhuban_cart')) || {};
 let currentFilter = "All";
+let itemsToShow = 4; // Initial items loaded
 let activeProduct = null;
 let activeVariant = null;
+let customWeightUnit = "g"; // 'g' or 'kg'
+
+/* ====== SAVE CART ====== */
+function saveCart() {
+  localStorage.setItem('madhuban_cart', JSON.stringify(cart));
+}
 
 /* ====== HTML TEMPLATES ====== */
 function productCardHTML(p) {
   let priceHtml = '';
   let unitHtml = p.unit || 'Choose Weight';
+  let badgeHtml = '';
 
+  // MRP / Discount Handling
   if (p.variants || p.customPricePerKg) {
     let minPrice = Infinity;
-    if (p.variants) minPrice = Math.min(...p.variants.map(v => v.price));
-    else if (p.customPricePerKg) minPrice = Math.round(p.customPricePerKg * 0.1);
+    let minMrp = Infinity;
+    if (p.variants) {
+      minPrice = Math.min(...p.variants.map(v => v.price));
+      minMrp = Math.min(...p.variants.map(v => v.mrp || v.price));
+    } else if (p.customPricePerKg) {
+      minPrice = Math.round(p.customPricePerKg * 0.1); // 100g min price
+      minMrp = minPrice;
+    }
     
     priceHtml = `
       <span class="product-card__price">Rs ${minPrice}</span>
       <span class="product-card__price-original" style="font-size: 11px; color: var(--ink-mute); font-weight: 500; margin-top: 4px; text-decoration: none;">Starts from</span>
     `;
+    
+    if (minMrp > minPrice) {
+      let disc = Math.round((1 - minPrice/minMrp) * 100);
+      badgeHtml = `<span class="product-card__badge">${disc}% OFF</span>`;
+    }
   } else {
     priceHtml = `
       <span class="product-card__price">Rs ${p.price}</span>
-      ${p.mrp ? `<span class="product-card__price-original">Rs ${p.mrp}</span>` : ''}
+      ${p.mrp && p.mrp > p.price ? `<span class="product-card__price-original">Rs ${p.mrp}</span>` : ''}
     `;
+    if (p.mrp && p.mrp > p.price) {
+      let disc = Math.round((1 - p.price/p.mrp) * 100);
+      badgeHtml = `<span class="product-card__badge">${disc}% OFF</span>`;
+    }
   }
 
   return `
     <div class="product-card" data-id="${p.id}">
       <div class="product-card__media" onclick="openProductDetail('${p.id}')">
         <img src="${p.img}" class="product-card__img" alt="${p.name}">
-        ${p.mrp || p.variants || p.customPricePerKg ? `<span class="product-card__badge">${p.variants || p.customPricePerKg ? 'OPTIONS' : Math.round((1 - p.price/p.mrp) * 100) + '% OFF'}</span>` : ''}
+        ${badgeHtml}
       </div>
       <div class="product-card__content">
         <h3 class="product-card__title">${p.name}</h3>
@@ -55,6 +80,32 @@ function productCardHTML(p) {
   `;
 }
 
+function offerCardHTML(p) {
+  let minPrice = p.price;
+  let minMrp = p.mrp;
+  
+  if (p.variants) {
+    minPrice = Math.min(...p.variants.map(v => v.price));
+    minMrp = Math.min(...p.variants.map(v => v.mrp || v.price));
+  } else if (p.customPricePerKg) {
+    minPrice = Math.round(p.customPricePerKg * 0.1);
+    minMrp = minPrice;
+  }
+
+  return `
+    <div class="offer-card" onclick="openProductDetail('${p.id}')">
+      <div class="offer-card__media">
+        <img src="${p.img}" alt="${p.name}">
+      </div>
+      <div class="offer-card__content">
+        <div class="offer-card__tag">Best Deal</div>
+        <div class="offer-card__title">${p.name}</div>
+        <div class="offer-card__price">Rs ${minPrice} ${minMrp > minPrice ? `<span style="font-size:11px; color:var(--ink-mute); text-decoration:line-through; margin-left:4px;">Rs ${minMrp}</span>` : ''}</div>
+      </div>
+    </div>
+  `;
+}
+
 function attachProductEvents() {
   document.querySelectorAll('.add-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -76,18 +127,51 @@ function attachProductEvents() {
   });
 }
 
-/* ====== RENDER PRODUCTS ====== */
+/* ====== RENDER PRODUCTS & PAGINATION ====== */
 const grid = document.getElementById('productsGrid');
+const showMoreBtn = document.getElementById('showMoreBtn');
 
 function renderProducts() {
   const filtered = products.filter(p => currentFilter === "All" || p.cat === currentFilter);
+  
   if (filtered.length === 0) {
     grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--ink-mute);">No products found</div>`;
+    showMoreBtn.style.display = 'none';
     return;
   }
-  grid.innerHTML = filtered.map(productCardHTML).join('');
+
+  // Slice array for pagination
+  const paginated = filtered.slice(0, itemsToShow);
+  grid.innerHTML = paginated.map(productCardHTML).join('');
+  
   attachProductEvents();
   syncAllProductUI();
+
+  // Show or hide "Show More" button
+  if (filtered.length > itemsToShow) {
+    showMoreBtn.style.display = 'block';
+  } else {
+    showMoreBtn.style.display = 'none';
+  }
+}
+
+showMoreBtn.addEventListener('click', () => {
+  itemsToShow += 4;
+  renderProducts();
+});
+
+/* ====== RENDER OFFERS BANNER ====== */
+function renderOffers() {
+  const offers = products.filter(p => p.isOffer);
+  const offersContainer = document.getElementById('offersContainer');
+  const offersScroll = document.getElementById('offersScroll');
+  
+  if (offers.length > 0) {
+    offersContainer.style.display = 'block';
+    offersScroll.innerHTML = offers.map(offerCardHTML).join('');
+  } else {
+    offersContainer.style.display = 'none';
+  }
 }
 
 /* ====== PRODUCT DETAIL LOGIC ====== */
@@ -117,6 +201,9 @@ function openProductDetail(id) {
   customWeightWrap.classList.remove('active');
   customWeightInfo.classList.remove('active');
   customWeightInput.value = '';
+  customWeightUnit = "g";
+  document.getElementById('unitGramsBtn').classList.add('active');
+  document.getElementById('unitKgBtn').classList.remove('active');
 
   if (p.variants || p.customPricePerKg) {
     variantContainer.style.display = 'block';
@@ -153,9 +240,34 @@ function openProductDetail(id) {
     }
   }
 
+  renderRelatedItems(p);
+
   detailSheet.classList.add('open');
   detailOverlay.classList.add('open');
   document.body.style.overflow = 'hidden';
+}
+
+function renderRelatedItems(p) {
+  const relatedSection = document.getElementById('relatedSection');
+  const relatedScroll = document.getElementById('relatedScroll');
+  
+  // Find 4 related items from same category
+  const related = products.filter(x => x.cat === p.cat && x.id !== p.id).slice(0, 4);
+  
+  if (related.length > 0) {
+    relatedSection.style.display = 'block';
+    relatedScroll.innerHTML = related.map(r => `
+      <div class="related-card" onclick="openProductDetail('${r.id}')">
+        <img src="${r.img}" alt="${r.name}">
+        <div class="related-card__content">
+          <div class="related-card__title">${r.name}</div>
+          <div class="related-card__price">Rs ${r.price || Math.min(...r.variants.map(v=>v.price))}</div>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    relatedSection.style.display = 'none';
+  }
 }
 
 function selectVariant(index) {
@@ -170,6 +282,19 @@ function selectVariant(index) {
   updateDetailPrice();
 }
 
+// Custom Weight Unit Toggle
+document.getElementById('unitGramsBtn').addEventListener('click', () => {
+  customWeightUnit = "g";
+  document.getElementById('unitGramsBtn').classList.add('active');
+  document.getElementById('unitKgBtn').classList.remove('active');
+});
+
+document.getElementById('unitKgBtn').addEventListener('click', () => {
+  customWeightUnit = "kg";
+  document.getElementById('unitKgBtn').classList.add('active');
+  document.getElementById('unitGramsBtn').classList.remove('active');
+});
+
 customWeightToggle.addEventListener('click', () => {
   customWeightWrap.classList.add('active');
   customWeightToggle.style.display = 'none';
@@ -177,29 +302,37 @@ customWeightToggle.addEventListener('click', () => {
 });
 
 document.getElementById('calcCustomWeightBtn').addEventListener('click', () => {
-  let weight = parseInt(customWeightInput.value);
+  let weight = parseFloat(customWeightInput.value);
   
-  if (!weight || weight < 100) {
+  if (!weight || weight <= 0) {
+    alert("Please enter a valid number.");
+    return;
+  }
+
+  // Convert kg to g for calculation
+  let weightInGrams = customWeightUnit === "kg" ? weight * 1000 : weight;
+  
+  if (weightInGrams < 100) {
     alert("Minimum weight is 100g.");
     return;
   }
-  if (weight > 50000) {
+  if (weightInGrams > 50000) {
     alert("Maximum weight is 50kg (50000g).");
     return;
   }
 
   const pricePerKg = activeProduct.customPricePerKg;
-  const calculatedPrice = (pricePerKg / 1000) * weight;
+  const calculatedPrice = (pricePerKg / 1000) * weightInGrams;
   const finalPrice = Math.round(calculatedPrice * 100) / 100;
 
   activeVariant = {
-    unit: `${weight} g (Custom)`,
+    unit: `${weight} ${customWeightUnit} (Custom)`,
     price: finalPrice,
     custom: true
   };
 
   document.querySelectorAll('.variant-card').forEach(card => card.classList.remove('active'));
-  customWeightInfo.innerText = `Custom Weight: ${weight}g = Rs ${finalPrice}`;
+  customWeightInfo.innerText = `Custom Weight: ${weight} ${customWeightUnit} = Rs ${finalPrice}`;
   customWeightInfo.classList.add('active');
   
   updateDetailPrice();
@@ -252,6 +385,7 @@ document.getElementById('detailAddBtn').addEventListener('click', () => {
   }
 
   cart[cartId] = cartItem;
+  saveCart(); // Save to local storage
   syncAllProductUI();
   updateCartUI();
   closeDetailSheet();
@@ -271,6 +405,7 @@ function addToCart(id) {
   const product = products.find(p => p.id === id);
   if (!product || product.variants || product.customPricePerKg) return;
   cart[id] = { ...product, qty: 1 };
+  saveCart();
   syncProductCardUI(id);
   updateCartUI();
 }
@@ -279,6 +414,7 @@ function changeCartQty(id, delta) {
   if (!cart[id]) return;
   cart[id].qty += delta;
   if (cart[id].qty <= 0) delete cart[id];
+  saveCart();
   syncProductCardUI(id);
   updateCartUI();
 }
@@ -529,6 +665,13 @@ document.getElementById('placeOrderBtn').addEventListener('click', () => {
   // IMPORTANT: Replace 919999999999 with the actual WhatsApp number
   const waUrl = `https://wa.me/919999999999?text=${encodeURIComponent(msg)}`;
   window.open(waUrl, '_blank');
+  
+  // Clear cart after order
+  cart = {};
+  saveCart();
+  syncAllProductUI();
+  updateCartUI();
+  closeCartSheet();
 });
 
 /* ====== CATEGORIES FILTER ====== */
@@ -539,6 +682,7 @@ document.querySelectorAll('.cat-pill').forEach(pill => {
     document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
     pill.classList.add('active');
     currentFilter = cat;
+    itemsToShow = 4; // Reset pagination on category change
     document.getElementById('productsTitle').textContent = cat === "All" ? "All Products" : cat;
     renderProducts();
     document.getElementById('productsTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -556,4 +700,7 @@ window.addEventListener('scroll', () => {
 });
 
 /* ====== INIT ====== */
+renderOffers();
 renderProducts();
+syncAllProductUI();
+updateCartUI();
