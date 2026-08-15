@@ -11,6 +11,9 @@
 </head>
 <body>
 
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
 <!-- HEADER -->
 <header class="header" id="mainHeader">
   <div class="header__top">
@@ -41,15 +44,13 @@
 
 <!-- CATEGORIES -->
 <h2 class="section-title">Categories</h2>
-<div class="categories-scroll" id="categoriesScroll">
-  <button class="cat-pill active" data-cat="All">All Items</button>
-  <button class="cat-pill" data-cat="Snacks">Snacks & Munchies</button>
-  <button class="cat-pill" data-cat="Pantry">Pantry Essentials</button>
-</div>
+<div class="categories-scroll" id="categoriesScroll"></div>
 
 <!-- PRODUCTS -->
 <h2 class="section-title" id="productsTitle">All Products</h2>
-<div class="products-grid" id="productsGrid"></div>
+<div class="products-grid" id="productsGrid">
+  <!-- Skeletons injected here -->
+</div>
 <button class="show-more-btn" id="showMoreBtn" style="display: none;">Show More</button>
 
 <footer class="footer">
@@ -74,9 +75,11 @@
     </div>
   </div>
   <div class="search-overlay__body" id="searchBody">
+    <div id="searchRecentContainer"></div>
     <div class="search-results-grid" id="searchResultsGrid"></div>
     <div class="search-empty" id="searchEmpty" style="display: none;">
-      No products found. Try searching for something else.
+      <h4 id="searchEmptyTitle">No products found</h4>
+      <p id="searchEmptyText">Try searching for something else.</p>
     </div>
   </div>
 </div>
@@ -85,7 +88,9 @@
 <div class="sheet-overlay" id="detailOverlay"></div>
 <div class="detail-sheet" id="detailSheet">
   <button class="detail-sheet__close" id="closeDetailBtn">✕</button>
-  <img src="" class="detail-sheet__img" id="detailImg" alt="">
+  <div class="detail-carousel" id="detailCarousel"></div>
+  <div class="carousel-dots" id="carouselDots"></div>
+  
   <div class="detail-sheet__body">
     <div class="detail-sheet__cat" id="detailCat"></div>
     <h2 class="detail-sheet__title" id="detailTitle"></h2>
@@ -95,7 +100,6 @@
       <label class="variant-label">Select Weight / Pack Size</label>
       <div class="variant-scroll-container" id="variantOptions"></div>
       
-      <!-- CUSTOM WEIGHT SYSTEM -->
       <div class="custom-weight-section" id="customWeightSection" style="display: none;">
         <button class="custom-weight-toggle" id="customWeightToggle">
           + Enter Custom Weight (Min 100g, Max 50kg)
@@ -112,12 +116,12 @@
       </div>
     </div>
 
-    <!-- RELATED ITEMS -->
     <div class="related-section" id="relatedSection" style="display: none;">
       <label class="variant-label">You might also like</label>
       <div class="related-scroll" id="relatedScroll"></div>
     </div>
   </div>
+  
   <div class="detail-sheet__foot">
     <div class="detail-sheet__price-block">
       <span class="detail-sheet__price" id="detailPrice">Rs 0</span>
@@ -171,7 +175,9 @@
           <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
           <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
         </svg>
-        <p>Your cart is empty.</p>
+        <h4>Your cart is empty</h4>
+        <p>Add some products to get started.</p>
+        <button class="empty-state-btn" id="emptyStateShopBtn">Start Shopping</button>
       </div>
     </div>
     <div class="sheet__foot" id="cartFoot" style="display: none;">
