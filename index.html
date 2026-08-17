@@ -11,10 +11,8 @@
 </head>
 <body>
 
-<!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- HEADER -->
 <header class="header" id="mainHeader">
   <div class="header__top">
     <div class="logo">Madhuban<br>Supermarket</div>
@@ -27,7 +25,6 @@
   </div>
 </header>
 
-<!-- HERO -->
 <section class="hero">
   <div class="hero__badge">
     <span class="hero__badge-dot"></span> Open Now · Latur Only
@@ -36,28 +33,22 @@
   <p class="hero__desc">Order from Madhuban Supermarket. Free delivery on orders above Rs 1999.</p>
 </section>
 
-<!-- OFFERS BANNER -->
 <section id="offersContainer" style="display: none;">
   <h2 class="section-title">Today's Best Offers</h2>
   <div class="offers-scroll" id="offersScroll"></div>
 </section>
 
-<!-- CATEGORIES -->
 <h2 class="section-title">Categories</h2>
 <div class="categories-scroll" id="categoriesScroll"></div>
 
-<!-- PRODUCTS -->
 <h2 class="section-title" id="productsTitle">All Products</h2>
-<div class="products-grid" id="productsGrid">
-  <!-- Skeletons injected here -->
-</div>
+<div class="products-grid" id="productsGrid"></div>
 <button class="show-more-btn" id="showMoreBtn" style="display: none;">Show More</button>
 
 <footer class="footer">
   Madhuban Supermarket © 2024<br>Quality you trust.
 </footer>
 
-<!-- SEARCH OVERLAY -->
 <div class="search-overlay" id="searchOverlay">
   <div class="search-overlay__head">
     <button class="search-overlay__back" id="closeSearchBtn">
@@ -84,7 +75,6 @@
   </div>
 </div>
 
-<!-- PRODUCT DETAIL SHEET -->
 <div class="sheet-overlay" id="detailOverlay"></div>
 <div class="detail-sheet" id="detailSheet">
   <button class="detail-sheet__close" id="closeDetailBtn">✕</button>
@@ -137,7 +127,6 @@
   </div>
 </div>
 
-<!-- FLOATING CART -->
 <div class="floating-cart" id="floatingCart">
   <div class="floating-cart__left">
     <div class="floating-cart__icon">
@@ -159,14 +148,18 @@
   </button>
 </div>
 
-<!-- CART SHEET -->
 <div class="sheet-overlay" id="cartOverlay"></div>
 <div class="sheet" id="cartSheet">
   <div class="sheet__handle"></div>
+  
+  <!-- CART VIEW -->
   <div class="view active" id="cartView">
     <div class="sheet__head">
       <h3 class="sheet__title">My Cart</h3>
-      <button class="sheet__close" id="closeCartBtn">✕</button>
+      <div style="display: flex; gap: 15px; align-items: center;">
+        <button class="cart-edit-btn" id="editCartBtn">Remove Items</button>
+        <button class="sheet__close" id="closeCartBtn">✕</button>
+      </div>
     </div>
     <div class="sheet__body" id="cartBody">
       <div id="cartItemsContainer"></div>
@@ -180,6 +173,14 @@
         <button class="empty-state-btn" id="emptyStateShopBtn">Start Shopping</button>
       </div>
     </div>
+    
+    <!-- Delete Bar (Visible only in edit mode) -->
+    <div class="delete-selected-bar">
+      <button class="cancel-delete-btn" id="cancelDeleteBtn">Cancel</button>
+      <button class="delete-selected-btn" id="deleteSelectedBtn">Delete Selected</button>
+    </div>
+
+    <!-- Normal Checkout Foot -->
     <div class="sheet__foot" id="cartFoot" style="display: none;">
       <div class="sheet__row"><span>Subtotal</span><span id="subtotal">Rs 0</span></div>
       <div class="sheet__row"><span>Delivery Fee</span><span id="deliveryFee">Calculated on WhatsApp</span></div>
@@ -255,7 +256,6 @@
   </div>
 </div>
 
-<!-- SCRIPTS -->
 <script src="products.js"></script>
 <script src="script.js"></script>
 </body>
