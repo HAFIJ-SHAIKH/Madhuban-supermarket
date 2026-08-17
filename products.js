@@ -1,13 +1,13 @@
 const products = [
   { 
-    id: "maggi-noodles", 
-    name: "Maggi Noodles", 
+    id: "maggi", 
+    name: "Maggi", 
     unit: "70 g", 
     price: 15, 
     mrp: 18, 
     images: [
-      "https://images.unsplash.com/photo-1612929633738-8c10ad4f34f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1582418702059-97ebdcb3ca4c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+      "https://5.imimg.com/data5/SELLER/Default/2023/11/363459181/WU/HF/DP/158100183/maggi-1.jpg",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR1PNYNAi_xNiSP2RQZ2hP4Rk2RPE6e7wgA0UpX7u6oPg&s=10"
     ], 
     cat: "Noodles",
     desc: "Instant masala noodles. Ready in just 2 minutes. Perfect for a quick and tasty meal.",
