@@ -3,80 +3,51 @@ let cart = JSON.parse(localStorage.getItem('madhuban_cart')) || {};
 let recentSearches = JSON.parse(localStorage.getItem('madhuban_searches')) || [];
 
 let currentFilter = "All";
-let itemsToShow = 8; // Initial items loaded
+let itemsToShow = 8;
 let activeProduct = null;
 let activeVariant = null;
 let customWeightUnit = "g";
+let cartEditMode = false;
+let selectedCartItems = new Set();
 
-/* ====== SAVE TO LOCAL STORAGE ====== */
-function saveCart() {
-  localStorage.setItem('madhuban_cart', JSON.stringify(cart));
-}
-function saveSearches() {
-  localStorage.setItem('madhuban_searches', JSON.stringify(recentSearches));
-}
+/* ====== LOCAL STORAGE ====== */
+function saveCart() { localStorage.setItem('madhuban_cart', JSON.stringify(cart)); }
+function saveSearches() { localStorage.setItem('madhuban_searches', JSON.stringify(recentSearches)); }
 
-/* ====== TOAST NOTIFICATIONS ====== */
+/* ====== TOAST ====== */
 function showToast(message) {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = 'toast';
   toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ${message}`;
   container.appendChild(toast);
-
-  setTimeout(() => {
-    toast.classList.add('out');
-    setTimeout(() => toast.remove(), 300);
-  }, 1000); // 1 second
+  setTimeout(() => { toast.classList.add('out'); setTimeout(() => toast.remove(), 300); }, 1000);
 }
 
-/* ====== SKELETON LOADERS ====== */
+/* ====== SKELETONS ====== */
 function renderSkeletons() {
   const grid = document.getElementById('productsGrid');
   let html = '';
   for (let i = 0; i < 4; i++) {
-    html += `
-      <div class="skeleton-card">
-        <div class="skeleton-img"></div>
-        <div style="padding: 0 1rem 1rem;">
-          <div class="skeleton-line"></div>
-          <div class="skeleton-line short"></div>
-          <div class="skeleton-line btn"></div>
-        </div>
-      </div>
-    `;
+    html += `<div class="skeleton-card"><div class="skeleton-img"></div><div style="padding: 0 1rem 1rem;"><div class="skeleton-line"></div><div class="skeleton-line short"></div><div class="skeleton-line btn"></div></div></div>`;
   }
   grid.innerHTML = html;
 }
 
-/* ====== HTML TEMPLATES ====== */
+/* ====== TEMPLATES ====== */
 function productCardHTML(p) {
-  let priceHtml = '';
-  let unitHtml = p.unit || 'Choose Weight';
-  let badgeHtml = '';
+  let priceHtml = '', unitHtml = p.unit || 'Choose Weight', badgeHtml = '';
   let imgSrc = p.images && p.images.length > 0 ? p.images[0] : '';
 
   if (p.variants || p.customPricePerKg) {
-    let minPrice = Infinity;
-    let minMrp = Infinity;
-    if (p.variants) {
-      minPrice = Math.min(...p.variants.map(v => v.price));
-      minMrp = Math.min(...p.variants.map(v => v.mrp || v.price));
-    } else if (p.customPricePerKg) {
-      minPrice = Math.round(p.customPricePerKg * 0.1);
-      minMrp = minPrice;
-    }
+    let minPrice = Infinity, minMrp = Infinity;
+    if (p.variants) { minPrice = Math.min(...p.variants.map(v => v.price)); minMrp = Math.min(...p.variants.map(v => v.mrp || v.price)); } 
+    else if (p.customPricePerKg) { minPrice = Math.round(p.customPricePerKg * 0.1); minMrp = minPrice; }
     priceHtml = `<span class="product-card__price">Rs ${minPrice}</span><span class="product-card__price-original" style="font-size: 11px; color: var(--ink-mute); font-weight: 500; margin-top: 4px; text-decoration: none;">Starts from</span>`;
-    if (minMrp > minPrice) {
-      let disc = Math.round((1 - minPrice/minMrp) * 100);
-      badgeHtml = `<span class="product-card__badge">${disc}% OFF</span>`;
-    }
+    if (minMrp > minPrice) { let disc = Math.round((1 - minPrice/minMrp) * 100); badgeHtml = `<span class="product-card__badge">${disc}% OFF</span>`; }
   } else {
     priceHtml = `<span class="product-card__price">Rs ${p.price}</span>${p.mrp && p.mrp > p.price ? `<span class="product-card__price-original">Rs ${p.mrp}</span>` : ''}`;
-    if (p.mrp && p.mrp > p.price) {
-      let disc = Math.round((1 - p.price/p.mrp) * 100);
-      badgeHtml = `<span class="product-card__badge">${disc}% OFF</span>`;
-    }
+    if (p.mrp && p.mrp > p.price) { let disc = Math.round((1 - p.price/p.mrp) * 100); badgeHtml = `<span class="product-card__badge">${disc}% OFF</span>`; }
   }
 
   return `
@@ -100,27 +71,11 @@ function productCardHTML(p) {
 }
 
 function offerCardHTML(p) {
-  let minPrice = p.price;
-  let minMrp = p.mrp;
-  if (p.variants) {
-    minPrice = Math.min(...p.variants.map(v => v.price));
-    minMrp = Math.min(...p.variants.map(v => v.mrp || v.price));
-  } else if (p.customPricePerKg) {
-    minPrice = Math.round(p.customPricePerKg * 0.1);
-    minMrp = minPrice;
-  }
+  let minPrice = p.price, minMrp = p.mrp;
+  if (p.variants) { minPrice = Math.min(...p.variants.map(v => v.price)); minMrp = Math.min(...p.variants.map(v => v.mrp || v.price)); } 
+  else if (p.customPricePerKg) { minPrice = Math.round(p.customPricePerKg * 0.1); minMrp = minPrice; }
   let imgSrc = p.images && p.images.length > 0 ? p.images[0] : '';
-
-  return `
-    <div class="offer-card" onclick="openProductDetail('${p.id}')">
-      <div class="offer-card__media"><img src="${imgSrc}" alt="${p.name}"></div>
-      <div class="offer-card__content">
-        <div class="offer-card__tag">Best Deal</div>
-        <div class="offer-card__title">${p.name}</div>
-        <div class="offer-card__price">Rs ${minPrice} ${minMrp > minPrice ? `<span style="font-size:11px; color:var(--ink-mute); text-decoration:line-through; margin-left:4px;">Rs ${minMrp}</span>` : ''}</div>
-      </div>
-    </div>
-  `;
+  return `<div class="offer-card" onclick="openProductDetail('${p.id}')"><div class="offer-card__media"><img src="${imgSrc}" alt="${p.name}"></div><div class="offer-card__content"><div class="offer-card__tag">Best Deal</div><div class="offer-card__title">${p.name}</div><div class="offer-card__price">Rs ${minPrice} ${minMrp > minPrice ? `<span style="font-size:11px; color:var(--ink-mute); text-decoration:line-through; margin-left:4px;">Rs ${minMrp}</span>` : ''}</div></div></div>`;
 }
 
 function attachProductEvents() {
@@ -129,45 +84,26 @@ function attachProductEvents() {
   document.querySelectorAll('.dec-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); changeCartQty(btn.dataset.id, -1); }));
 }
 
-/* ====== RENDER PRODUCTS & PAGINATION ====== */
+/* ====== RENDER ====== */
 const grid = document.getElementById('productsGrid');
 const showMoreBtn = document.getElementById('showMoreBtn');
 
 function renderProducts() {
   const filtered = products.filter(p => currentFilter === "All" || p.cat === currentFilter);
-  if (filtered.length === 0) {
-    grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--ink-mute);">No products found</div>`;
-    showMoreBtn.style.display = 'none';
-    return;
-  }
+  if (filtered.length === 0) { grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 3rem; color: var(--ink-mute);">No products found</div>`; showMoreBtn.style.display = 'none'; return; }
   const paginated = filtered.slice(0, itemsToShow);
   grid.innerHTML = paginated.map(productCardHTML).join('');
-  attachProductEvents();
-  syncAllProductUI();
-
-  if (filtered.length > itemsToShow) {
-    showMoreBtn.style.display = 'block';
-  } else {
-    showMoreBtn.style.display = 'none';
-  }
+  attachProductEvents(); syncAllProductUI();
+  showMoreBtn.style.display = filtered.length > itemsToShow ? 'block' : 'none';
 }
 
-showMoreBtn.addEventListener('click', () => {
-  itemsToShow += 8;
-  renderProducts();
-});
+showMoreBtn.addEventListener('click', () => { itemsToShow += 8; renderProducts(); });
 
-/* ====== RENDER OFFERS & CATEGORIES ====== */
 function renderOffers() {
   const offers = products.filter(p => p.isOffer);
   const offersContainer = document.getElementById('offersContainer');
   const offersScroll = document.getElementById('offersScroll');
-  if (offers.length > 0) {
-    offersContainer.style.display = 'block';
-    offersScroll.innerHTML = offers.map(offerCardHTML).join('');
-  } else {
-    offersContainer.style.display = 'none';
-  }
+  if (offers.length > 0) { offersContainer.style.display = 'block'; offersScroll.innerHTML = offers.map(offerCardHTML).join(''); } else { offersContainer.style.display = 'none'; }
 }
 
 function renderCategories() {
@@ -176,9 +112,7 @@ function renderCategories() {
   scroll.innerHTML = cats.map(cat => `<button class="cat-pill ${cat === currentFilter ? 'active' : ''}" data-cat="${cat}">${cat}</button>`).join('');
   scroll.querySelectorAll('.cat-pill').forEach(pill => {
     pill.addEventListener('click', (e) => {
-      e.preventDefault();
-      currentFilter = pill.dataset.cat;
-      itemsToShow = 8;
+      e.preventDefault(); currentFilter = pill.dataset.cat; itemsToShow = 8;
       scroll.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
       pill.classList.add('active');
       document.getElementById('productsTitle').textContent = currentFilter === "All" ? "All Products" : currentFilter;
@@ -188,7 +122,7 @@ function renderCategories() {
   });
 }
 
-/* ====== PRODUCT DETAIL LOGIC ====== */
+/* ====== DETAIL & CAROUSEL ====== */
 const detailSheet = document.getElementById('detailSheet');
 const detailOverlay = document.getElementById('detailOverlay');
 const customWeightSection = document.getElementById('customWeightSection');
@@ -200,11 +134,8 @@ const customWeightInfo = document.getElementById('customWeightInfo');
 function openProductDetail(id) {
   const p = products.find(prod => prod.id === id);
   if (!p) return;
-  
-  activeProduct = p;
-  activeVariant = p.variants ? p.variants[0] : null;
+  activeProduct = p; activeVariant = p.variants ? p.variants[0] : null;
 
-  // Multi-Image Carousel
   const carousel = document.getElementById('detailCarousel');
   const dots = document.getElementById('carouselDots');
   if (p.images && p.images.length > 0) {
@@ -216,10 +147,7 @@ function openProductDetail(id) {
         const idx = Math.round(carousel.scrollLeft / carousel.offsetWidth);
         dots.querySelectorAll('.carousel-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
       };
-    } else {
-      dots.innerHTML = '';
-      dots.style.display = 'none';
-    }
+    } else { dots.innerHTML = ''; dots.style.display = 'none'; }
   }
 
   document.getElementById('detailCat').textContent = p.cat;
@@ -228,26 +156,15 @@ function openProductDetail(id) {
 
   const variantContainer = document.getElementById('variantContainer');
   const variantOptions = document.getElementById('variantOptions');
-  customWeightWrap.classList.remove('active');
-  customWeightInfo.classList.remove('active');
-  customWeightInput.value = '';
-  customWeightUnit = "g";
-  document.getElementById('unitGramsBtn').classList.add('active');
-  document.getElementById('unitKgBtn').classList.remove('active');
+  customWeightWrap.classList.remove('active'); customWeightInfo.classList.remove('active'); customWeightInput.value = '';
+  customWeightUnit = "g"; document.getElementById('unitGramsBtn').classList.add('active'); document.getElementById('unitKgBtn').classList.remove('active');
 
   if (p.variants || p.customPricePerKg) {
     variantContainer.style.display = 'block';
     let variantsHTML = '';
-    if (p.variants) {
-      variantsHTML += p.variants.map((v, i) => `<div class="variant-card ${i === 0 ? 'active' : ''}" onclick="selectVariant(${i})"><div class="variant-card__weight">${v.unit}</div><div class="variant-card__price">Rs ${v.price}</div>${v.mrp ? `<span class="variant-card__mrp">Rs ${v.mrp}</span>` : ''}</div>`).join('');
-    }
+    if (p.variants) { variantsHTML += p.variants.map((v, i) => `<div class="variant-card ${i === 0 ? 'active' : ''}" onclick="selectVariant(${i})"><div class="variant-card__weight">${v.unit}</div><div class="variant-card__price">Rs ${v.price}</div>${v.mrp ? `<span class="variant-card__mrp">Rs ${v.mrp}</span>` : ''}</div>`).join(''); }
     variantOptions.innerHTML = variantsHTML;
-    if (p.customPricePerKg) {
-      customWeightSection.style.display = 'block';
-      if (!p.variants) activeVariant = null;
-    } else {
-      customWeightSection.style.display = 'none';
-    }
+    if (p.customPricePerKg) { customWeightSection.style.display = 'block'; if (!p.variants) activeVariant = null; } else { customWeightSection.style.display = 'none'; }
     updateDetailPrice();
   } else {
     variantContainer.style.display = 'none';
@@ -257,9 +174,7 @@ function openProductDetail(id) {
   }
 
   renderRelatedItems(p);
-  detailSheet.classList.add('open');
-  detailOverlay.classList.add('open');
-  document.body.style.overflow = 'hidden';
+  detailSheet.classList.add('open'); detailOverlay.classList.add('open'); document.body.style.overflow = 'hidden';
 }
 
 function renderRelatedItems(p) {
@@ -273,18 +188,14 @@ function renderRelatedItems(p) {
       let rImg = r.images && r.images.length > 0 ? r.images[0] : '';
       return `<div class="related-card" onclick="openProductDetail('${r.id}')"><img src="${rImg}" alt="${r.name}"><div class="related-card__content"><div class="related-card__title">${r.name}</div><div class="related-card__price">Rs ${rPrice}</div></div></div>`;
     }).join('');
-  } else {
-    relatedSection.style.display = 'none';
-  }
+  } else { relatedSection.style.display = 'none'; }
 }
 
 function selectVariant(index) {
   document.querySelectorAll('.variant-card').forEach(card => card.classList.remove('active'));
   document.querySelectorAll('.variant-card')[index].classList.add('active');
   activeVariant = activeProduct.variants[index];
-  customWeightWrap.classList.remove('active');
-  customWeightInfo.classList.remove('active');
-  customWeightToggle.style.display = 'block';
+  customWeightWrap.classList.remove('active'); customWeightInfo.classList.remove('active'); customWeightToggle.style.display = 'block';
   updateDetailPrice();
 }
 
@@ -303,8 +214,7 @@ document.getElementById('calcCustomWeightBtn').addEventListener('click', () => {
   activeVariant = { unit: `${weight} ${customWeightUnit} (Custom)`, price: finalPrice, custom: true };
   document.querySelectorAll('.variant-card').forEach(card => card.classList.remove('active'));
   customWeightInfo.innerText = `Custom Weight: ${weight} ${customWeightUnit} = Rs ${finalPrice}`;
-  customWeightInfo.classList.add('active');
-  updateDetailPrice();
+  customWeightInfo.classList.add('active'); updateDetailPrice();
 });
 
 customWeightInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('calcCustomWeightBtn').click(); } });
@@ -330,12 +240,8 @@ document.getElementById('detailAddBtn').addEventListener('click', () => {
     cartId = activeProduct.id;
     cartItem = { ...activeProduct, img: activeProduct.images[0], qty: 1 };
   }
-  cart[cartId] = cartItem;
-  saveCart();
-  syncAllProductUI();
-  updateCartUI();
-  showToast(`${activeProduct.name} added to cart`);
-  closeDetailSheet();
+  cart[cartId] = cartItem; saveCart(); syncAllProductUI(); updateCartUI();
+  showToast(`${activeProduct.name} added to cart`); closeDetailSheet();
 });
 
 function closeDetailSheet() { detailSheet.classList.remove('open'); detailOverlay.classList.remove('open'); document.body.style.overflow = ''; }
@@ -346,10 +252,7 @@ detailOverlay.addEventListener('click', closeDetailSheet);
 function addToCart(id) {
   const product = products.find(p => p.id === id);
   if (!product || product.variants || product.customPricePerKg) return;
-  cart[id] = { ...product, img: product.images[0], qty: 1 };
-  saveCart();
-  syncProductCardUI(id);
-  updateCartUI();
+  cart[id] = { ...product, img: product.images[0], qty: 1 }; saveCart(); syncProductCardUI(id); updateCartUI();
   showToast(`${product.name} added to cart`);
 }
 
@@ -357,9 +260,7 @@ function changeCartQty(id, delta) {
   if (!cart[id]) return;
   cart[id].qty += delta;
   if (cart[id].qty <= 0) delete cart[id];
-  saveCart();
-  syncProductCardUI(id);
-  updateCartUI();
+  saveCart(); syncProductCardUI(id); updateCartUI();
 }
 
 function syncProductCardUI(id) {
@@ -380,21 +281,17 @@ function updateCartUI() {
     floatingCart.classList.add('visible');
     document.getElementById('cartCount').textContent = `${totalQty} item${totalQty > 1 ? 's' : ''}`;
     document.getElementById('cartTotal').textContent = `Rs ${subtotal}`;
-  } else {
-    floatingCart.classList.remove('visible');
-  }
+  } else { floatingCart.classList.remove('visible'); }
 
   const cartItemsContainer = document.getElementById('cartItemsContainer');
   const cartFoot = document.getElementById('cartFoot');
   const emptyCart = document.getElementById('emptyCart');
 
   if (itemIds.length === 0) {
-    emptyCart.style.display = 'flex';
-    cartFoot.style.display = 'none';
-    cartItemsContainer.innerHTML = '';
+    emptyCart.style.display = 'flex'; cartFoot.style.display = 'none'; cartItemsContainer.innerHTML = '';
+    exitEditMode(); // Turn off edit mode if cart becomes empty
   } else {
-    emptyCart.style.display = 'none';
-    cartFoot.style.display = 'block';
+    emptyCart.style.display = 'none'; cartFoot.style.display = 'block';
     document.getElementById('subtotal').textContent = `Rs ${subtotal}`;
     document.getElementById('cartTotalFinal').textContent = `Rs ${subtotal}`;
     document.getElementById('checkoutTotal').textContent = `Rs ${subtotal}`;
@@ -407,16 +304,82 @@ function updateCartUI() {
       const item = cart[id];
       const itemEl = document.createElement('div');
       itemEl.className = 'cart-item';
-      itemEl.innerHTML = `<img src="${item.img}" class="cart-item__img" alt="${item.name}"><div class="cart-item__details"><h4 class="cart-item__title">${item.name}</h4><p class="cart-item__unit">${item.unit}</p><div class="cart-item__bottom"><span class="cart-item__price">Rs ${item.price * item.qty}</span><div class="cart-item__stepper"><button data-cart-dec="${id}">-</button><span>${item.qty}</span><button data-cart-inc="${id}">+</button></div></div></div>`;
+      itemEl.dataset.id = id;
+      itemEl.innerHTML = `
+        <div class="cart-item__checkbox ${selectedCartItems.has(id) ? 'checked' : ''}" data-id="${id}"></div>
+        <img src="${item.img}" class="cart-item__img" alt="${item.name}">
+        <div class="cart-item__details">
+          <h4 class="cart-item__title">${item.name}</h4>
+          <p class="cart-item__unit">${item.unit}</p>
+          <div class="cart-item__bottom">
+            <span class="cart-item__price">Rs ${item.price * item.qty}</span>
+            <div class="cart-item__stepper">
+              <button data-cart-dec="${id}">-</button>
+              <span>${item.qty}</span>
+              <button data-cart-inc="${id}">+</button>
+            </div>
+          </div>
+        </div>
+      `;
       cartItemsContainer.appendChild(itemEl);
     });
 
+    // Attach normal stepper events
     cartItemsContainer.querySelectorAll('[data-cart-inc]').forEach(btn => btn.addEventListener('click', () => changeCartQty(btn.dataset.cartInc, 1)));
     cartItemsContainer.querySelectorAll('[data-cart-dec]').forEach(btn => btn.addEventListener('click', () => changeCartQty(btn.dataset.cartDec, -1)));
+    
+    // Attach checkbox events for edit mode
+    cartItemsContainer.querySelectorAll('.cart-item__checkbox').forEach(chk => {
+      chk.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = chk.dataset.id;
+        if (selectedCartItems.has(id)) { selectedCartItems.delete(id); chk.classList.remove('checked'); } 
+        else { selectedCartItems.add(id); chk.classList.add('checked'); }
+      });
+    });
   }
 }
 
-/* ====== SMART SEARCH ====== */
+/* ====== MULTI-SELECT REMOVE LOGIC ====== */
+const cartView = document.getElementById('cartView');
+const editCartBtn = document.getElementById('editCartBtn');
+
+function toggleEditMode() {
+  cartEditMode = !cartEditMode;
+  if (cartEditMode) {
+    cartView.classList.add('edit-mode');
+    editCartBtn.innerText = "Done";
+    editCartBtn.classList.add('done');
+  } else {
+    exitEditMode();
+  }
+}
+
+function exitEditMode() {
+  cartEditMode = false;
+  cartView.classList.remove('edit-mode');
+  editCartBtn.innerText = "Remove Items";
+  editCartBtn.classList.remove('done');
+  selectedCartItems.clear(); // Clear selections
+  document.querySelectorAll('.cart-item__checkbox').forEach(chk => chk.classList.remove('checked'));
+}
+
+editCartBtn.addEventListener('click', toggleEditMode);
+document.getElementById('cancelDeleteBtn').addEventListener('click', exitEditMode);
+
+document.getElementById('deleteSelectedBtn').addEventListener('click', () => {
+  if (selectedCartItems.size === 0) {
+    alert("Please select at least one item to delete.");
+    return;
+  }
+  selectedCartItems.forEach(id => { delete cart[id]; syncProductCardUI(id); });
+  saveCart();
+  updateCartUI();
+  showToast(`${selectedCartItems.size} item(s) removed`);
+  exitEditMode();
+});
+
+/* ====== SEARCH ====== */
 const searchOverlay = document.getElementById('searchOverlay');
 const searchInput = document.getElementById('searchInput');
 const searchResultsGrid = document.getElementById('searchResultsGrid');
@@ -426,85 +389,42 @@ const searchRecentContainer = document.getElementById('searchRecentContainer');
 function renderRecentSearches() {
   if (recentSearches.length > 0) {
     searchRecentContainer.innerHTML = `<h4 style="margin-bottom:0.75rem; font-size:14px; font-weight:700; color:var(--ink-soft); text-transform:uppercase; letter-spacing:0.05em;">Recent Searches</h4><div class="search-recent">${recentSearches.map(s => `<div class="search-chip" onclick="searchFor('${s}')">${s}</div>`).join('')}</div>`;
-  } else {
-    searchRecentContainer.innerHTML = '';
-  }
+  } else { searchRecentContainer.innerHTML = ''; }
 }
 
-function searchFor(term) {
-  searchInput.value = term;
-  renderSearchResults(term);
-}
+function searchFor(term) { searchInput.value = term; renderSearchResults(term); }
 
-document.getElementById('openSearchBtn').addEventListener('click', () => {
-  searchOverlay.classList.add('open');
-  renderRecentSearches();
-  setTimeout(() => searchInput.focus(), 100);
-});
-
-document.getElementById('closeSearchBtn').addEventListener('click', () => {
-  searchOverlay.classList.remove('open');
-  searchInput.value = '';
-  searchResultsGrid.innerHTML = '';
-  searchEmpty.style.display = 'none';
-  renderRecentSearches();
-});
+document.getElementById('openSearchBtn').addEventListener('click', () => { searchOverlay.classList.add('open'); renderRecentSearches(); setTimeout(() => searchInput.focus(), 100); });
+document.getElementById('closeSearchBtn').addEventListener('click', () => { searchOverlay.classList.remove('open'); searchInput.value = ''; searchResultsGrid.innerHTML = ''; searchEmpty.style.display = 'none'; renderRecentSearches(); });
 
 function renderSearchResults(query) {
   const q = query.toLowerCase().trim();
-  if (q === '') {
-    searchResultsGrid.innerHTML = '';
-    searchEmpty.style.display = 'none';
-    renderRecentSearches();
-    return;
-  }
-  
+  if (q === '') { searchResultsGrid.innerHTML = ''; searchEmpty.style.display = 'none'; renderRecentSearches(); return; }
   searchRecentContainer.innerHTML = '';
   const filtered = products.filter(p => p.name.toLowerCase().includes(q));
-  
   if (filtered.length === 0) {
-    searchResultsGrid.innerHTML = '';
-    searchEmpty.style.display = 'block';
-    
-    // Simple Fuzzy Search ("Did you mean?")
-    let suggestion = products.find(p => {
-      let matches = 0;
-      for (let char of q) { if (p.name.toLowerCase().includes(char)) matches++; }
-      return matches >= q.length * 0.6; // 60% character match
-    });
-    
+    searchResultsGrid.innerHTML = ''; searchEmpty.style.display = 'block';
+    let suggestion = products.find(p => { let matches = 0; for (let char of q) { if (p.name.toLowerCase().includes(char)) matches++; } return matches >= q.length * 0.6; });
     if (suggestion) {
       document.getElementById('searchEmptyTitle').innerText = "No products found";
       document.getElementById('searchEmptyText').innerHTML = `Did you mean <strong style="color:var(--primary); cursor:pointer;" onclick="searchFor('${suggestion.name}')">${suggestion.name}</strong>?`;
-    } else {
-      document.getElementById('searchEmptyTitle').innerText = "No products found";
-      document.getElementById('searchEmptyText').innerText = "Try searching for something else.";
-    }
+    } else { document.getElementById('searchEmptyTitle').innerText = "No products found"; document.getElementById('searchEmptyText').innerText = "Try searching for something else."; }
   } else {
     searchEmpty.style.display = 'none';
     searchResultsGrid.innerHTML = filtered.map(productCardHTML).join('');
-    attachProductEvents();
-    syncAllProductUI();
-    
-    // Save to recent searches
-    if (!recentSearches.includes(query)) {
-      recentSearches.unshift(query);
-      if (recentSearches.length > 5) recentSearches.pop();
-      saveSearches();
-    }
+    attachProductEvents(); syncAllProductUI();
+    if (!recentSearches.includes(query)) { recentSearches.unshift(query); if (recentSearches.length > 5) recentSearches.pop(); saveSearches(); }
   }
 }
-
 searchInput.addEventListener('input', (e) => renderSearchResults(e.target.value));
 
-/* ====== CART SHEET LOGIC ====== */
+/* ====== SHEET & CHECKOUT ====== */
 const cartSheet = document.getElementById('cartSheet');
 const cartOverlay = document.getElementById('cartOverlay');
-const cartView = document.getElementById('cartView');
 const checkoutView = document.getElementById('checkoutView');
 
 function openCartSheet() { cartSheet.classList.add('open'); cartOverlay.classList.add('open'); showCartView(); document.body.style.overflow = 'hidden'; }
-function closeCartSheet() { cartSheet.classList.remove('open'); cartOverlay.classList.remove('open'); document.body.style.overflow = ''; }
+function closeCartSheet() { cartSheet.classList.remove('open'); cartOverlay.classList.remove('open'); document.body.style.overflow = ''; exitEditMode(); }
 function showCartView() { checkoutView.classList.remove('active'); checkoutView.classList.add('hidden'); cartView.classList.remove('hidden'); cartView.classList.add('active'); }
 function showCheckoutView() { cartView.classList.remove('active'); cartView.classList.add('hidden'); checkoutView.classList.remove('hidden'); checkoutView.classList.add('active'); loadUserData(); }
 
@@ -517,7 +437,6 @@ document.getElementById('emptyStateShopBtn').addEventListener('click', () => { c
 document.getElementById('goToCheckoutBtn').addEventListener('click', () => { if (Object.keys(cart).length === 0) return; showCheckoutView(); });
 document.getElementById('backToCartBtn').addEventListener('click', showCartView);
 
-/* ====== LOCAL STORAGE & WHATSAPP ORDER ====== */
 function loadUserData() {
   const saved = JSON.parse(localStorage.getItem('madhuban_user') || '{}');
   document.getElementById('inputName').value = saved.name || '';
@@ -570,23 +489,14 @@ document.getElementById('placeOrderBtn').addEventListener('click', () => {
   window.open(waUrl, '_blank');
 });
 
-/* ====== HEADER SCROLL EFFECT ====== */
+/* ====== HEADER ====== */
 const header = document.getElementById('mainHeader');
-window.addEventListener('scroll', () => {
-  if (window.scrollY > 10) header.classList.add('scrolled');
-  else header.classList.remove('scrolled');
-});
+window.addEventListener('scroll', () => { if (window.scrollY > 10) header.classList.add('scrolled'); else header.classList.remove('scrolled'); });
 
 /* ====== INIT ====== */
-// 1. Render Skeletons immediately
 renderSkeletons();
-// 2. Render Categories & Offers instantly
 renderCategories();
 renderOffers();
-// 3. Simulate slight delay to show off skeleton animation, then render products
-setTimeout(() => {
-  renderProducts();
-}, 600);
-
+setTimeout(() => { renderProducts(); }, 600);
 syncAllProductUI();
 updateCartUI();
