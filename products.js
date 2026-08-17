@@ -109,43 +109,43 @@ const products = [
     unit: "100 g", 
     price: 10, 
     images: [
-      "https://images.unsplash.com/photo-1587026530560-9c8c63b3e7b1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+      "https://m.media-amazon.com/images/I/61kZskdmJzL.jpg"
     ], 
     cat: "Biscuits",
     desc: "The classic glucose biscuit loved by all."
   },
   { 
-    id: "oreo-chocolate", 
-    name: "Oreo Chocolate", 
+    id: "oreo", 
+    name: "Oreo", 
     unit: "120 g", 
     price: 40, 
     mrp: 45, 
     images: [
-      "https://images.unsplash.com/photo-1587026530560-9c8c63b3e7b1?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+      "https://m.media-amazon.com/images/I/61Xj1A6WCTL.jpg"
     ], 
     cat: "Biscuits",
     desc: "Chocolate sandwich cookies with a creamy center."
   },
   { 
-    id: "coca-cola-pet-bottle", 
-    name: "Coca-Cola Pet Bottle", 
+    id: "coca-cola", 
+    name: "Coca-Cola", 
     unit: "750 ml", 
     price: 38, 
     mrp: 40, 
     images: [
-      "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+      "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcQF-D3pF4n9sbDHa-suOQ17PfcCjrS7ALDwGiH7EmxlaotnEgDrvnw8jZrjXLSevyHBbWOkSiCk_owWUpWs36Dkef5dYVPv"
     ], 
     cat: "Cold Drinks",
     desc: "Refreshing cola to chill your day."
   },
   { 
-    id: "amul-vanilla-magic", 
-    name: "Amul Vanilla Magic", 
+    id: "amul-vanilla-royal", 
+    name: "Amul Vanilla Royal", 
     unit: "700 ml", 
     price: 250, 
     mrp: 300, 
     images: [
-      "https://images.unsplash.com/photo-1497034825429-c343d7c6a68f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+      "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcTBaDZk_GFRHraaGbYRF9pk4b5sk4DBqwHYh_8dLZTUNxbEv_Dy6mFqrmGBdlIn1NxdGvnDYXDzYAkL0uHKyKbfyuVTddbI6A"
     ], 
     cat: "Ice Cream",
     desc: "Classic vanilla ice cream made from pure milk.",
@@ -173,7 +173,7 @@ const products = [
     price: 130, 
     mrp: 150, 
     images: [
-      "https://images.unsplash.com/photo-1616462823505-56b4f0d1e3e8?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+      "https://encrypted-tbn3.gstatic.com/shopping?q=tbn:ANd9GcSYzaVoWZF0UBlmCDY2JOJ5QdkboPT04ME8_tMBQKEQOCi-Rhw4hAOL4vHDf7gFBdt4u0g-jFdAhimYpH5LOoVeV66Vv92zGQ"
     ], 
     cat: "Pantry",
     desc: "Refined sunflower oil for healthy cooking."
